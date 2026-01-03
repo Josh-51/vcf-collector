@@ -22,4 +22,4 @@ RUN chmod -R 775 storage bootstrap/cache
 EXPOSE 8000
 
 # Lancer Laravel sur Railway
-CMD php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT

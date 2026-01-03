@@ -80,10 +80,10 @@
     </div>
     <div class="flex items-center gap-6">
         @auth
-            <a href="{{ route('dashboard') }}" class="text-[10px] font-mono uppercase tracking-widest bg-white text-black px-6 py-2.5 rounded hover:bg-indigo-500 hover:text-white transition-all">Console</a>
+            <a href="{{ route('dashboard') }}" class="text-[10px] font-mono uppercase tracking-widest bg-white text-black px-6 py-2.5 rounded hover:bg-indigo-500 hover:text-white transition-all">Tableau de bord</a>
         @else
-            <a href="{{ route('login') }}" class="hidden sm:block text-[10px] font-mono uppercase tracking-widest opacity-60 hover:opacity-100 italic transition-all">Access</a>
-            <a href="{{ route('register') }}" class="text-[10px] font-mono uppercase tracking-widest bg-white text-black px-6 py-2.5 rounded font-bold hover:bg-indigo-600 hover:text-white transition-all">Deploy Now</a>
+            <a href="{{ route('login') }}" class="hidden sm:block text-[10px] font-mono uppercase tracking-widest opacity-60 hover:opacity-100 italic transition-all">Se connecter</a>
+            <a href="{{ route('register') }}" class="text-[10px] font-mono uppercase tracking-widest bg-white text-black px-6 py-2.5 rounded font-bold hover:bg-indigo-600 hover:text-white transition-all">S'inscrire</a>
         @endauth
     </div>
 </nav>

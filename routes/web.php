@@ -33,4 +33,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.index');
 });
 
+Route::post('/join/{slug}/bulk', [PublicLinkController::class, 'bulkSubmit'])->name('public.bulk');
+
 require __DIR__.'/auth.php';

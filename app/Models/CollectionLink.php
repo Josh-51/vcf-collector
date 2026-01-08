@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CollectionLink extends Model
 {
-    protected $fillable = ['user_id', 'title', 'slug', 'target_count'];
+    protected $fillable = ['user_id', 'title', 'slug', 'target_count', 'is_download_public'];
 
     public function contacts() : HasMany {
         return $this->hasMany(Contact::class);

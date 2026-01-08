@@ -60,4 +60,22 @@ class PublicLinkController extends Controller
             'Content-Disposition' => 'attachment; filename="contacts-'.$link->slug.'.vcf"',
         ]);
     }
+
+    public function bulkSubmit(Request $request, $slug) {
+    $link = CollectionLink::where('slug', $slug)->firstOrFail();
+    $contacts = $request->input('contacts'); // Tableau de contacts [{name: '...', tel: '...'}, ...]
+
+    foreach ($contacts as $c) {
+        // On nettoie le numéro (enlève les espaces)
+        $phone = str_replace(' ', '', $c['tel']);
+        
+        // On enregistre seulement si le numéro n'existe pas déjà pour ce lien
+        $link->contacts()->firstOrCreate(
+            ['phone' => $phone],
+            ['name' => $c['name']]
+        );
+    }
+
+    return response()->json(['success' => true, 'count' => count($contacts)]);
+}
 }

@@ -9,73 +9,92 @@ use JeroenDesloovere\VCard\VCard;
 
 class PublicLinkController extends Controller
 {
-    // Afficher le formulaire
-    public function show($slug) {
+    public function show($slug)
+    {
         $link = CollectionLink::where('slug', $slug)->withCount('contacts')->firstOrFail();
         return view('public.form', compact('link'));
     }
 
-    // Enregistrer un contact
-    public function submit(Request $request, $slug) {
+    public function submit(Request $request, $slug)
+    {
         $link = CollectionLink::where('slug', $slug)->firstOrFail();
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|unique:contacts,phone,NULL,id,collection_link_id,' . $link->id,
+            'country_code' => 'required',
+            'phone' => 'required|string',
         ]);
 
-        $link->contacts()->create($request->only('name', 'phone'));
+        // Préparation du nom avec Suffixe si défini
+        $finalName = trim($request->name);
+        if ($link->suffix) {
+            $finalName .= ' ' . trim($link->suffix);
+        }
 
-        return back()->with('success', 'Numéro enregistré avec succès !');
+        // Nettoyage et fusion de l'indicatif + numéro
+        $purePhone = ltrim(preg_replace('/[^0-9]/', '', $request->phone), '0');
+        $cleanPhone = $request->country_code . $purePhone;
+
+        $exists = $link->contacts()->where('phone', $cleanPhone)->exists();
+        if($exists) {
+            return back()->with('error', 'Ce numéro est déjà inscrit.');
+        }
+
+        $link->contacts()->create([
+            'name' => $finalName,
+            'phone' => $cleanPhone
+        ]);
+
+        return back()->with('success', 'Vos données ont été injectées avec succès.');
     }
 
-    // Export VCF (Visible si le nombre est atteint)
+    public function bulkSubmit(Request $request, $slug)
+    {
+        $link = CollectionLink::where('slug', $slug)->firstOrFail();
+        $contacts = $request->input('contacts');
+        $count = 0;
+
+        foreach ($contacts as $contact) {
+            $phone = preg_replace('/[^0-9+]/', '', $contact['tel']);
+
+            // Préparation du nom avec Suffixe pour le bulk aussi
+            $bulkName = trim($contact['name'] ?? 'Contact VCF');
+            if ($link->suffix) {
+                $bulkName .= ' ' . trim($link->suffix);
+            }
+
+            if (!empty($phone)) {
+                $link->contacts()->firstOrCreate(
+                    ['phone' => $phone],
+                    ['name' => $bulkName]
+                );
+                $count++;
+            }
+        }
+
+        return response()->json(['success' => true, 'count' => $count]);
+    }
+
     public function export($slug)
     {
         $link = CollectionLink::where('slug', $slug)->with('contacts')->firstOrFail();
 
-        // Vérifier si le quota est atteint
-        if ($link->contacts->count() < $link->target_count) {
-            return back()->with('error', 'Le quota n\'est pas encore atteint.');
+        $isCreator = auth()->check() && auth()->id() == $link->user_id;
+        if (!$link->is_download_public && !$isCreator) {
+            abort(403, 'Accès restreint à l\'administrateur.');
         }
 
-        $allVcards = ""; // Variable qui va stocker tous les contacts
-
+        $allVcards = "";
         foreach ($link->contacts as $contact) {
-            // On crée un NOUVEL objet VCard pour CHAQUE contact
             $vcard = new VCard();
-
-            // On ajoute les infos
             $vcard->addName($contact->name);
             $vcard->addPhoneNumber($contact->phone, 'CELL');
-
-            // On extrait le contenu texte de ce contact et on l'ajoute à la suite
-            // buildVCard() génère le format "BEGIN:VCARD...END:VCARD"
             $allVcards .= $vcard->buildVCard();
         }
 
-        // On renvoie le gros fichier texte contenant tous les contacts
         return response($allVcards, 200, [
             'Content-Type' => 'text/vcard',
             'Content-Disposition' => 'attachment; filename="contacts-'.$link->slug.'.vcf"',
         ]);
     }
-
-    public function bulkSubmit(Request $request, $slug) {
-    $link = CollectionLink::where('slug', $slug)->firstOrFail();
-    $contacts = $request->input('contacts'); // Tableau de contacts [{name: '...', tel: '...'}, ...]
-
-    foreach ($contacts as $c) {
-        // On nettoie le numéro (enlève les espaces)
-        $phone = str_replace(' ', '', $c['tel']);
-        
-        // On enregistre seulement si le numéro n'existe pas déjà pour ce lien
-        $link->contacts()->firstOrCreate(
-            ['phone' => $phone],
-            ['name' => $c['name']]
-        );
-    }
-
-    return response()->json(['success' => true, 'count' => count($contacts)]);
-}
 }

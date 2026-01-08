@@ -22,7 +22,9 @@ class DashboardController extends Controller
         auth()->user()->collectionLinks()->create([
             'title' => $request->title,
             'target_count' => $request->target_count,
-            'slug' => Str::slug($request->title) . '-' . Str::random(5)
+            'slug' => Str::slug($request->title) . '-' . Str::random(5),
+            'suffix' => $request->suffix,
+            'is_download_public' => $request->is_download_public
         ]);
 
         return back()->with('success', 'Lien créé !');
